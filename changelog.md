@@ -1,3 +1,6 @@
+## 1.3
+* Make the website functional
+
 ## 1.2
 * Now supports haloalkanes
 * Condensed structual formulae now group similar things together

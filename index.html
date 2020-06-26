@@ -3,8 +3,23 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Thing</title>
+		<style>
+			input {
+				width: 100%;
+			}
+		</style>
 
 		<script src="main.js"></script>
+		<script>
+			let $ = id => document.getElementById(id);
+			setInterval(function () {
+				$("out").value = Molecule.fromName($("in").value.toLowerCase()).condensed_formula;
+			}, 50);
+		</script>
 	</head>
-	<body></body>
+	<body>
+		<input id="in" placeholder="Name here" />
+		<br />
+		<input id="out" readonly />
+	</body>
 </html>
