@@ -107,17 +107,19 @@ class Atom {
 	}
 }
 
-function repeats(string, final = false) {
-	if (!string.match(/-(.+)\1+/g)) return string;
-	let t = string.match(/-(.+)\1+/g)[0];
+function repeats(string) {
+	if (!string.match(/(.+)\1+/g)) return string;
+	let t = string.match(/(.+)\1+/g)[0];
 	let buffer = "";
-	while (buffer.length < t.length / 2) {
+	while (buffer.length < t.length) {
 		buffer += t[0];
 		t = t.substring(1);
 		if (isNaN(parseInt(buffer)) && t.startsWith(buffer)) {
-			return string.replace(new RegExp(`(${buffer})+`), match => {
-				return repeats((buffer.length > 1 ? `(${buffer})` : buffer) + match.length / buffer.length);
-			});
+			return repeats(
+				string.replace(new RegExp(`(${buffer}){2,}`, "g"), match => {
+					return (buffer.length > 1 ? `(${buffer})` : buffer) + match.length / buffer.length;
+				})
+			);
 		}
 	}
 	return string;

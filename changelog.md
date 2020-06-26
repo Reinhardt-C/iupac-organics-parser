@@ -1,3 +1,6 @@
+### 1.3.1
+* Bugfixes
+
 ## 1.3
 * Make the website functional
 
