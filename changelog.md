@@ -1,3 +1,6 @@
+### 1.3.2
+* Fix typos
+
 ### 1.3.1
 * Bugfixes
 

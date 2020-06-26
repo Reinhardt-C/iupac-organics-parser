@@ -18,7 +18,7 @@ class Molecule {
 		let prefixes = [];
 		let sidegroups = [];
 		if (name.endsWith("ane")) {
-			name = name.replace(/[\d,]+-\w*(flouro|chloro|bromo|iodo|astato|tennasso)/g, (match, c1) => {
+			name = name.replace(/[\d,]+-\w*(fluoro|chloro|bromo|iodo|astato|tennesso)/g, (match, c1) => {
 				prefixes.push(match);
 				match = match.slice(0, -c1.length).replace(/-.+/, "");
 				match
@@ -149,12 +149,12 @@ const NUM_PREFIX = {
 };
 
 const HALOGENS = {
-	flouro: "F",
+	fluoro: "F",
 	chloro: "Cl",
 	bromo: "Br",
 	iodo: "I",
 	astato: "As",
-	tennasso: "Ts",
+	tennesso: "Ts",
 };
 
 const DATA = [
