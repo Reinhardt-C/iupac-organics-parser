@@ -108,8 +108,8 @@ class Atom {
 }
 
 function repeats(string) {
-	if (!string.match(/(.+)\1+/g)) return string;
-	let t = string.match(/(.+)\1+/g)[0];
+	if (!string.match(/-(.+)\1+/g)) return string;
+	let t = string.match(/-(.+)\1+/g)[0];
 	let buffer = "";
 	while (buffer.length < t.length) {
 		buffer += t[0];
