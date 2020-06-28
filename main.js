@@ -3,42 +3,83 @@ class Molecule {
 		this.atoms = atoms;
 	}
 
-	addAtom(element = "C", bonds = []) {
-		let a = new Atom(element, this, bonds);
+	addAtom(element = "C", bonds = [], dbonds = [], tbonds = [], main = false) {
+		let a = new Atom(element, this, bonds, dbonds, tbonds, main);
 		for (let i of bonds) {
 			let e = this.atoms[i];
-			if (e.valence == e.bonds.length) throw `Insufficient valence electrons on ${e.element} ${i}`;
+			if (e.valence == e.bonds.length + e.dbonds.length * 2 + e.tbonds.length * 3)
+				throw `Insufficient valence electrons on ${e.element} ${i}`;
 			else e.bonds.push(this.atoms.length);
 		}
+		for (let i of dbonds) {
+			let e = this.atoms[i];
+			if (e.valence < e.bonds.length + e.dbonds.length * 2 + e.tbonds.length * 3 + 2)
+				throw `Insufficient valence electrons on ${e.element} ${i}`;
+			else e.dbonds.push(this.atoms.length);
+		}
+		for (let i of tbonds) {
+			let e = this.atoms[i];
+			if (e.valence < e.bonds.length + e.dbonds.length * 2 + e.tbonds.length * 3 + 3)
+				throw `Insufficient valence electrons on ${e.element} ${i}`;
+			else e.tbonds.push(this.atoms.length);
+		}
 		this.atoms.push(a);
+	}
+
+	addYl(pos, deg) {
+		this.addAtom("C", [pos - 1]);
+		for (let i = 0; i < deg - 1; i++) {
+			this.addAtom("C", [this.atoms.length - 1]);
+		}
 	}
 
 	static fromName(name) {
 		let m = new Molecule();
 		let prefixes = [];
 		let sidegroups = [];
+		let ylgroups = [];
+		let extracarbons = 0;
 		if (name.endsWith("ane")) {
-			name = name.replace(/[\d,]+-\w*(fluoro|chloro|bromo|iodo|astato|tennesso)/g, (match, c1) => {
-				prefixes.push(match);
-				match = match.slice(0, -c1.length).replace(/-.+/, "");
-				match
-					.split(",")
-					.map(e => parseInt(e) - 1)
-					.forEach(e => {
-						if (!sidegroups[e]) sidegroups[e] = [];
-						sidegroups[e].push(HALOGENS[c1]);
-					});
-				return "";
-			});
-
+			name = name.replace(
+				/[\d,]+-\w*(fluoro|chloro|bromo|iodo|astato|tennesso|yl)/g,
+				(match, c1) => {
+					if (c1 !== "yl") {
+						prefixes.push(match);
+						match = match.slice(0, -c1.length).replace(/-.+/, "");
+						match
+							.split(",")
+							.map(e => parseInt(e) - 1)
+							.forEach(e => {
+								if (!sidegroups[e]) sidegroups[e] = [];
+								sidegroups[e].push(HALOGENS[c1]);
+							});
+					} else {
+						let a = match.split("-");
+						a[0] = a[0].split(",").map(parseFloat);
+						a[1] = a[1].slice(0, -2);
+						let buffer = "";
+						while (GREEK[buffer] == undefined && buffer.length < a[1].length) {
+							buffer += a[1][buffer.length];
+						}
+						if (buffer.length !== a[1].length) a[1] = a[1].replace(buffer, "");
+						a[1] = NUM_PREFIX[a[1]];
+						for (let i of a[0]) {
+							ylgroups.push([i, a[1]]);
+							extracarbons += a[1];
+						}
+					}
+					return "";
+				}
+			);
 			name = name.replace(/-/g, "").slice(0, -3);
 			let main = NUM_PREFIX[name];
-			m.addAtom();
-			for (let i = 0; i < main - 1; i++) m.addAtom("C", [m.atoms.length - 1]);
-			for (let i = 0; i < main; i++) {
+			m.addAtom("C", [], [], [], true);
+			for (let i = 0; i < main - 1; i++) m.addAtom("C", [m.atoms.length - 1], [], [], true);
+			for (let i of ylgroups) m.addYl(i[0], i[1]);
+			for (let i = 0; i < main + extracarbons; i++) {
 				let a = m.atoms[i];
 				let s = sidegroups[i] || [];
-				while (a.bonds.length < a.valence) {
+				while (a.bonds.length + a.dbonds.length * 2 + a.tbonds.length * 3 < a.valence) {
 					if (s.length == 0) m.addAtom("H", [i]);
 					else m.addAtom(s.pop(), [i]);
 				}
@@ -71,16 +112,45 @@ class Molecule {
 			if (done[i.id]) continue;
 			done[i.id] = true;
 			let totals = {};
+			function formulaYl(c, totals = {}) {
+				done[c.id] = true;
+				totals.C = totals.C + 1 || 1;
+				let branches = [];
+				for (let i of c.bonds) {
+					if (!c.parent.atoms[i].main && !done[i]) {
+						if (c.parent.atoms[i].element == "C") branches.push(formulaYl(c.parent.atoms[i]));
+						else {
+							totals[c.parent.atoms[i].element] = totals[c.parent.atoms[i].element] + 1 || 1;
+							done[i] = true;
+						}
+					}
+				}
+				let t = "";
+				for (let j in totals) {
+					t += j + (totals[j] > 1 ? totals[j] : "");
+				}
+				for (let i of branches) {
+					if (branches.length > 1 && branches.length > 1) t += `-(${i})`;
+					else t += `-${i}`;
+				}
+				return t;
+			}
+			let formula = "";
+			let g = "";
 			for (let j of i.bonds) {
-				if (this.atoms[j].element == "C") continue;
+				if (this.atoms[j].main) continue;
+				if (this.atoms[j].element == "C") {
+					g += `(${formulaYl(this.atoms[j])})`;
+					continue;
+				}
 				if (totals[this.atoms[j].element] == undefined) totals[this.atoms[j].element] = 1;
 				else totals[this.atoms[j].element]++;
 				done[j] = true;
 			}
-			let formula = "";
 			for (let j in totals) {
 				formula += j + (totals[j] > 1 ? totals[j] : "");
 			}
+			formula += g;
 			let group = i.element;
 			group += repeats(formula);
 			groups.push(group);
@@ -90,12 +160,13 @@ class Molecule {
 }
 
 class Atom {
-	constructor(element, parent, bonds = [], dbonds = [], tbonds = []) {
+	constructor(element, parent, bonds = [], dbonds = [], tbonds = [], main = false) {
 		this.element = element;
 		this.parent = parent;
 		this.bonds = bonds;
 		this.dbonds = dbonds;
 		this.tbonds = tbonds;
+		this.main = main;
 	}
 
 	get id() {
@@ -107,18 +178,19 @@ class Atom {
 	}
 }
 
-function repeats(string) {
-	if (!string.match(/-(.+)\1+/g)) return string;
+function repeats(string, i = 0) {
+	if (!string.match(/-(.+)\1+/g) || i > 5) return string;
 	let t = string.match(/-(.+)\1+/g)[0];
 	let buffer = "";
-	while (buffer.length < t.length) {
+	while (buffer.length <= t.length) {
 		buffer += t[0];
 		t = t.substring(1);
 		if (isNaN(parseInt(buffer)) && t.startsWith(buffer)) {
 			return repeats(
 				string.replace(new RegExp(`(${buffer}){2,}`, "g"), match => {
 					return (buffer.length > 1 ? `(${buffer})` : buffer) + match.length / buffer.length;
-				})
+				}),
+				i + 1
 			);
 		}
 	}
@@ -146,6 +218,28 @@ const NUM_PREFIX = {
 	octadec: 18,
 	nonadec: 19,
 	icos: 20,
+};
+
+const GREEK = {
+	di: 2,
+	tri: 3,
+	tetra: 4,
+	penta: 5,
+	hexa: 6,
+	hepta: 7,
+	octa: 8,
+	nona: 9,
+	deca: 10,
+	undeca: 11,
+	dodeca: 12,
+	trideca: 13,
+	tetradeca: 14,
+	pentadeca: 15,
+	hexadeca: 16,
+	heptadec: 17,
+	octadeca: 18,
+	nonadeca: 19,
+	icosa: 20,
 };
 
 const HALOGENS = {

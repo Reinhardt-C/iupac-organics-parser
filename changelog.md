@@ -1,3 +1,7 @@
+## 1.4
+* Support for -yl groups
+* Formulae for side chains support
+
 ### 1.3.2
 * Fix typos
 
