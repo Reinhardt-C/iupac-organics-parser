@@ -64,7 +64,10 @@ class Molecule {
 						a[0] = a[0].split(",").map(parseFloat);
 						a[1] = a[1].slice(0, -2);
 						let buffer = "";
-						while (GREEK[buffer] == undefined && buffer.length < a[1].length) {
+						while (
+							(GREEK[buffer] == undefined || buffer.length == 0) &&
+							buffer.length < a[1].length
+						) {
 							buffer += a[1][buffer.length];
 						}
 						if (buffer.length !== a[1].length) a[1] = a[1].replace(buffer, "");

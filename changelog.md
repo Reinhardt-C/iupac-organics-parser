@@ -1,4 +1,8 @@
-## 1.5.1
+### 1.5.2
+
+- Fix the bug again for the alkanes
+
+### 1.5.1
 
 - Bug fix to do with stuffing up long prefixes
 
