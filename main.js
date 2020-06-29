@@ -1,33 +1,35 @@
 class Molecule {
 	constructor(atoms = []) {
 		this.atoms = atoms;
+		this.joke = false;
 	}
 
 	addAtom(element = "C", bonds = [], dbonds = [], tbonds = [], main = false) {
 		let a = new Atom(element, this, bonds, dbonds, tbonds, main);
 		for (let i of bonds) {
-			let e = this.atoms[i];
+			let e = this.atoms[i] ?? {};
 			if (e.valence == e.bonds.length + e.dbonds.length * 2 + e.tbonds.length * 3)
-				throw `Insufficient valence electrons on ${e.element} ${i}`;
+				return `Insufficient valence electrons on ${e.element} ${i}`;
 			else e.bonds.push(this.atoms.length);
 		}
 		for (let i of dbonds) {
-			let e = this.atoms[i];
+			let e = this.atoms[i] ?? {};
 			if (e.valence < e.bonds.length + e.dbonds.length * 2 + e.tbonds.length * 3 + 2)
-				throw `Insufficient valence electrons on ${e.element} ${i}`;
+				return `Insufficient valence electrons on ${e.element} ${i}`;
 			else e.dbonds.push(this.atoms.length);
 		}
 		for (let i of tbonds) {
-			let e = this.atoms[i];
+			let e = this.atoms[i] ?? {};
 			if (e.valence < e.bonds.length + e.dbonds.length * 2 + e.tbonds.length * 3 + 3)
-				throw `Insufficient valence electrons on ${e.element} ${i}`;
+				return `Insufficient valence electrons on ${e.element} ${i}`;
 			else e.tbonds.push(this.atoms.length);
 		}
 		this.atoms.push(a);
 	}
 
 	addYl(pos, deg) {
-		this.addAtom("C", [pos - 1]);
+		let x = this.addAtom("C", [pos - 1]);
+		if (x) this.addAtom("C", [this.atoms.length - pos + 1]);
 		for (let i = 0; i < deg - 1; i++) {
 			this.addAtom("C", [this.atoms.length - 1]);
 		}
@@ -35,6 +37,10 @@ class Molecule {
 
 	static fromName(name) {
 		let m = new Molecule();
+		if (/\w+une/.test(name)) {
+			m.joke = true;
+			return m;
+		}
 		let prefixes = [];
 		let sidegroups = [];
 		let ylgroups = [];
@@ -85,10 +91,177 @@ class Molecule {
 				}
 			}
 		}
+		if (name.endsWith("ene")) {
+			name = name.replace(
+				/[\d,]+-\w*(fluoro|chloro|bromo|iodo|astato|tennesso|yl)/g,
+				(match, c1) => {
+					if (c1 !== "yl") {
+						prefixes.push(match);
+						match = match.slice(0, -c1.length).replace(/-.+/, "");
+						match
+							.split(",")
+							.map(e => parseInt(e) - 1)
+							.forEach(e => {
+								if (!sidegroups[e]) sidegroups[e] = [];
+								sidegroups[e].push(HALOGENS[c1]);
+							});
+					} else {
+						let a = match.split("-");
+						a[0] = a[0].split(",").map(parseFloat);
+						a[1] = a[1].slice(0, -2);
+						let buffer = "";
+						while (GREEK[buffer] == undefined && buffer.length < a[1].length) {
+							buffer += a[1][buffer.length];
+						}
+						if (buffer.length !== a[1].length) a[1] = a[1].replace(buffer, "");
+						a[1] = NUM_PREFIX[a[1]];
+						for (let i of a[0]) {
+							ylgroups.push([i, a[1]]);
+							extracarbons += a[1];
+						}
+					}
+					return "";
+				}
+			);
+			name = name.replace(/-/g, "").slice(0, -3);
+			let tempthing = name.replace(/[a-zA-Z]/g, "");
+			let dbondpos = tempthing
+				.split(",")
+				.map(parseFloat)
+				.map(e => (isNaN(e) ? 1 : e));
+			name = name.replace(/[\d,]/g, "");
+			let buff = "";
+			while (buff.length < name.length && !NUM_PREFIX[buff]) buff += name[buff.length];
+			if (!NUM_PREFIX[buff]) buff = "meth";
+			let main = NUM_PREFIX[buff];
+			let defaultCount = GREEK[name.replace(buff, "")];
+			if (tempthing.length == 0) {
+				for (let i = 0; i < defaultCount; i++) dbondpos[i] = i * 2 + 1;
+			}
+			m.addAtom("C", [], [], [], true);
+			for (let i = 0; i < main - 1; i++) {
+				if (dbondpos.includes(i + 1)) {
+					m.addAtom("C", [], [m.atoms.length - 1], [], true);
+				} else {
+					m.addAtom("C", [m.atoms.length - 1], [], [], true);
+				}
+			}
+			for (let i of ylgroups) m.addYl(i[0], i[1]);
+			for (let i = 0; i < main + extracarbons; i++) {
+				let a = m.atoms[i];
+				let s = sidegroups[i] || [];
+				while (a.bonds.length + a.dbonds.length * 2 + a.tbonds.length * 3 < a.valence) {
+					if (s.length == 0) m.addAtom("H", [i]);
+					else m.addAtom(s.pop(), [i]);
+				}
+			}
+		}
+		if (name.endsWith("yne")) {
+			name = name.replace(
+				/[\d,]+-\w*(fluoro|chloro|bromo|iodo|astato|tennesso|yl)/g,
+				(match, c1) => {
+					if (c1 !== "yl") {
+						prefixes.push(match);
+						match = match.slice(0, -c1.length).replace(/-.+/, "");
+						match
+							.split(",")
+							.map(e => parseInt(e) - 1)
+							.forEach(e => {
+								if (!sidegroups[e]) sidegroups[e] = [];
+								sidegroups[e].push(HALOGENS[c1]);
+							});
+					} else {
+						let a = match.split("-");
+						a[0] = a[0].split(",").map(parseFloat);
+						a[1] = a[1].slice(0, -2);
+						let buffer = "";
+						while (GREEK[buffer] == undefined && buffer.length < a[1].length) {
+							buffer += a[1][buffer.length];
+						}
+						if (buffer.length !== a[1].length) a[1] = a[1].replace(buffer, "");
+						a[1] = NUM_PREFIX[a[1]];
+						for (let i of a[0]) {
+							ylgroups.push([i, a[1]]);
+							extracarbons += a[1];
+						}
+					}
+					return "";
+				}
+			);
+			name = name.replace(/-/g, "").slice(0, -3);
+			let efedupnametype = /\d+\w+\d+en/;
+			let tempthing;
+			if (efedupnametype.test(name)) {
+				tempthing = [...name.matchAll(/\d/g)].reverse().map(e => e[0]);
+			} else {
+				tempthing = name.split("en");
+				if (isNaN(parseFloat(name[0]))) {
+					tempthing = tempthing.slice(1).map(e =>
+						e
+							.replace(/[a-zA-Z]/g, "")
+							.split(",")
+							.map(parseFloat)
+							.map(e => (isNaN(e) ? 1 : e))
+					);
+				} else {
+					tempthing = tempthing
+						.map(e => e.replace(/[a-zA-Z]/g, ""))
+						.filter(e => e.length > 0)
+						.map(e =>
+							e
+								.split(",")
+								.map(parseFloat)
+								.map(e => (isNaN(e) ? 1 : e))
+						);
+				}
+			}
+
+			let dbondpos = tempthing[tempthing.length - 2] || [];
+			let tbondpos = tempthing[tempthing.length - 1] || [];
+			if (dbondpos[0] == 1 && tbondpos[0] == 1 && dbondpos.length == 1 && tbondpos.length == 1)
+				dbondpos[0] += 2;
+			name = name.replace(/[\d,]/g, "");
+			let buff = "";
+			while (buff.length < name.length && !NUM_PREFIX[buff]) buff += name[buff.length];
+			if (!NUM_PREFIX[buff]) buff = "meth";
+			let main = NUM_PREFIX[buff];
+			let gprefs = name
+				.replace(buff, "")
+				.split("en")
+				.map(e => GREEK[e]);
+			// console.log(gprefs, dbondpos, tbondpos);
+			if (tbondpos.length == 0) {
+				for (let i = 0; i < gprefs[gprefs.length - 1] || 0; i++) dbondpos[i] = i * 2 + 1;
+			}
+			if (dbondpos.length == 0) {
+				for (let i = 0; i < gprefs[gprefs.length - 2] || 0; i++) dbondpos[i] = i * 2 + 1;
+			}
+			m.addAtom("C", [], [], [], true);
+			for (let i = 0; i < main - 1; i++) {
+				if (tbondpos.includes(i + 1)) {
+					m.addAtom("C", [], [], [m.atoms.length - 1], true);
+				} else if (dbondpos.includes(i + 1)) {
+					m.addAtom("C", [], [m.atoms.length - 1], [], true);
+				} else {
+					m.addAtom("C", [m.atoms.length - 1], [], [], true);
+				}
+			}
+			for (let i of ylgroups) m.addYl(i[0], i[1]);
+			for (let i = 0; i < main + extracarbons; i++) {
+				let a = m.atoms[i];
+				let s = sidegroups[i] || [];
+				while (a.bonds.length + a.dbonds.length * 2 + a.tbonds.length * 3 < a.valence) {
+					if (s.length == 0) m.addAtom("H", [i]);
+					else m.addAtom(s.pop(), [i]);
+				}
+			}
+		}
+
 		return m;
 	}
 
 	get formula() {
+		if (this.joke) return "C2";
 		let totals = {};
 		for (let i of this.atoms) {
 			if (totals[i.element] == undefined) totals[i.element] = 1;
@@ -102,9 +275,12 @@ class Molecule {
 	}
 
 	get condensed_formula() {
+		if (this.joke) return "C≣C";
 		let groups = [];
 		let done = new Array(this.atoms.length).fill(false);
 		let temp = [...this.atoms];
+		let dbonds = new Set();
+		let tbonds = new Set();
 		temp.sort((a, b) => {
 			a.element == "C" ? 1 : a.element < b.element ? -1 : 1;
 		});
@@ -147,6 +323,8 @@ class Molecule {
 				else totals[this.atoms[j].element]++;
 				done[j] = true;
 			}
+			for (let j of i.dbonds) dbonds.add(Math.min(i.id, j));
+			for (let j of i.tbonds) tbonds.add(Math.min(i.id, j));
 			for (let j in totals) {
 				formula += j + (totals[j] > 1 ? totals[j] : "");
 			}
@@ -155,7 +333,18 @@ class Molecule {
 			group += repeats(formula);
 			groups.push(group);
 		}
-		return repeats(groups.join("-"), true).replace(/\(-/g, "-(");
+		let initstring = "";
+		for (let i in groups) {
+			initstring += groups[i];
+			if (dbonds.has(parseFloat(i))) initstring += "=";
+			else if (tbonds.has(parseFloat(i))) initstring += "≡";
+			else initstring += "-";
+		}
+		initstring = initstring.slice(0, -1);
+		return repeats(initstring, true)
+			.replace(/\(-/g, "-(")
+			.replace(/\(=/g, "=(")
+			.replace(/\(≡/g, "≡(");
 	}
 }
 
@@ -179,7 +368,7 @@ class Atom {
 }
 
 function repeats(string, i = 0) {
-	if (!string.match(/-(.+)\1+/g) || i > 5) return string;
+	if (!string.match(/-(.+)\1+/g) || i > 10) return string;
 	let t = string.match(/-(.+)\1+/g)[0];
 	let buffer = "";
 	while (buffer.length <= t.length) {
@@ -221,6 +410,7 @@ const NUM_PREFIX = {
 };
 
 const GREEK = {
+	"": 1,
 	di: 2,
 	tri: 3,
 	tetra: 4,

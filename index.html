@@ -8,13 +8,16 @@
 				width: 100%;
 			}
 		</style>
-
 		<script src="main.js"></script>
 		<script>
 			let $ = id => document.getElementById(id);
 			setInterval(function () {
 				$("out").value = Molecule.fromName($("in").value.toLowerCase()).condensed_formula;
 				$("out2").value = Molecule.fromName($("in").value.toLowerCase()).formula;
+				if (Molecule.fromName($("in").value.toLowerCase()).formula.length > 1)
+					if ($("out2").value == "C2") $("opsin").src = "methune.png";
+					else
+						$("opsin").src = `https://opsin.ch.cam.ac.uk/opsin/${$("in").value.toLowerCase()}.png`;
 			}, 50);
 		</script>
 	</head>
@@ -23,5 +26,7 @@
 		<br />
 		<input id="out" readonly />
 		<input id="out2" readonly />
+		<br /><br /><br />
+		<img id="opsin" />
 	</body>
 </html>
