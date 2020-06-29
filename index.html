@@ -15,7 +15,11 @@
 				$("out").value = Molecule.fromName($("in").value.toLowerCase()).condensed_formula;
 				$("out2").value = Molecule.fromName($("in").value.toLowerCase()).formula;
 				if (Molecule.fromName($("in").value.toLowerCase()).formula.length > 1)
-					if ($("out2").value == "C2") $("opsin").src = "methune.png";
+					if ($("out2").value == "C2")
+						$("opsin").src =
+							window.origin == "https://reinhardt-c.github.io"
+								? "https://raw.githubusercontent.com/Reinhardt-C/iupac-organics-parser/master/methune.PNG"
+								: "methune.png";
 					else
 						$("opsin").src = `https://opsin.ch.cam.ac.uk/opsin/${$("in").value.toLowerCase()}.png`;
 			}, 50);
