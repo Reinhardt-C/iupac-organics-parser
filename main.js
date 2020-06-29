@@ -109,8 +109,12 @@ class Molecule {
 						let a = match.split("-");
 						a[0] = a[0].split(",").map(parseFloat);
 						a[1] = a[1].slice(0, -2);
+
 						let buffer = "";
-						while (GREEK[buffer] == undefined && buffer.length < a[1].length) {
+						while (
+							(GREEK[buffer] == undefined || buffer.length == 0) &&
+							buffer.length < a[1].length
+						) {
 							buffer += a[1][buffer.length];
 						}
 						if (buffer.length !== a[1].length) a[1] = a[1].replace(buffer, "");
@@ -131,7 +135,13 @@ class Molecule {
 				.map(e => (isNaN(e) ? 1 : e));
 			name = name.replace(/[\d,]/g, "");
 			let buff = "";
-			while (buff.length < name.length && !NUM_PREFIX[buff]) buff += name[buff.length];
+			let potbuffs = [];
+			while (buff.length < name.length) {
+				buff += name[buff.length];
+				if (NUM_PREFIX[buff]) potbuffs.push(buff);
+			}
+			potbuffs.sort();
+			buff = potbuffs[potbuffs.length - 1];
 			if (!NUM_PREFIX[buff]) buff = "meth";
 			let main = NUM_PREFIX[buff];
 			let defaultCount = GREEK[name.replace(buff, "")];
@@ -175,7 +185,10 @@ class Molecule {
 						a[0] = a[0].split(",").map(parseFloat);
 						a[1] = a[1].slice(0, -2);
 						let buffer = "";
-						while (GREEK[buffer] == undefined && buffer.length < a[1].length) {
+						while (
+							(GREEK[buffer] == undefined || buffer.length == 0) &&
+							buffer.length < a[1].length
+						) {
 							buffer += a[1][buffer.length];
 						}
 						if (buffer.length !== a[1].length) a[1] = a[1].replace(buffer, "");
@@ -195,7 +208,7 @@ class Molecule {
 				tempthing = [...name.matchAll(/\d/g)].reverse().map(e => e[0]);
 			} else {
 				tempthing = name.split("en");
-				if (isNaN(parseFloat(name[0]))) {
+				if (isNaN(parseFloat(name[0])) && tempthing.length > 1) {
 					tempthing = tempthing.slice(1).map(e =>
 						e
 							.replace(/[a-zA-Z]/g, "")
@@ -222,16 +235,21 @@ class Molecule {
 				dbondpos[0] += 2;
 			name = name.replace(/[\d,]/g, "");
 			let buff = "";
-			while (buff.length < name.length && !NUM_PREFIX[buff]) buff += name[buff.length];
+			let potbuffs = [];
+			while (buff.length < name.length) {
+				buff += name[buff.length];
+				if (NUM_PREFIX[buff]) potbuffs.push(buff);
+			}
+			potbuffs.sort();
+			buff = potbuffs[potbuffs.length - 1];
 			if (!NUM_PREFIX[buff]) buff = "meth";
 			let main = NUM_PREFIX[buff];
 			let gprefs = name
 				.replace(buff, "")
 				.split("en")
 				.map(e => GREEK[e]);
-			// console.log(gprefs, dbondpos, tbondpos);
 			if (tbondpos.length == 0) {
-				for (let i = 0; i < gprefs[gprefs.length - 1] || 0; i++) dbondpos[i] = i * 2 + 1;
+				for (let i = 0; i < gprefs[gprefs.length - 1] || 0; i++) tbondpos[i] = i * 2 + 1;
 			}
 			if (dbondpos.length == 0) {
 				for (let i = 0; i < gprefs[gprefs.length - 2] || 0; i++) dbondpos[i] = i * 2 + 1;

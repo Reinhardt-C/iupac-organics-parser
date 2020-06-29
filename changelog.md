@@ -1,4 +1,9 @@
+## 1.5.1
+
+- Bug fix to do with stuffing up long prefixes
+
 ## 1.5
+
 - Supports alkene name input
 - Supports alkyne name input
 - Displays structural formula (taken from OPSIN)
